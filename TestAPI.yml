@@ -1,0 +1,111 @@
+openapi: 3.0.0
+info:
+  title: Тестовая служба работы с задачами
+  version: 1.0.0
+paths:
+  /task:
+    get:
+      operationId: createTask
+      summary: Cоздание задачи
+      description: |
+        1. Создает запись в БД (любой, на выбор разработчика) cо сгенерированным UUID, текущим временем и статусом `created`
+        2. Возвращает клиенту код 202 и UUID задачи
+        3. Обновляет в БД для данного UUID текущее время и меняет статус на `running`
+        4. Ждет 2 минуты (имитируя выполнение задачи)
+        5. Обновляет в БД для данного UUID текущее время и меняет статус на `finished`
+      responses:
+        '202':
+          description: Задача успешно созданы и запущена. UUID задачи в ответе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        '500':
+          description: Что-то пошло не так
+  /task/{taskId}:
+    get:
+      parameters: 
+      - $ref: '#/components/parameters/taskId'
+      operationId: getTaskSync
+      summary: Синхронное получение статуса задачи
+      description: |-
+        1. Ищет в БД текущее состояние задачи.
+        2. Возвращает текущее состояние задачи
+      responses:
+        '200':
+          $ref: '#/components/responses/taskStatus'
+        '400':
+          description: Передан не UUID
+        '404':
+          description: Задача с {taskId} не найдена
+        '500':
+          description: Что-то пошло не так
+  /task/{taskId}/finished:
+    get:
+      parameters: 
+      - $ref: '#/components/parameters/taskId'
+      operationId: getFinishedTask
+      summary: Long polling ожидание завершения задачи
+      description: |
+        1. Ищет в БД текущее состояние задачи.
+        2. Если статус не `finished`, то
+           1. Ждет, когда задача завершится
+              * регулярно проверяя состояние задачи
+              * не ожидая дольше 5 минут
+           2. Отправляет клиенту состояние задачи
+        3. Иначе возвращает текущее состояние задачи
+      responses:
+        '200':
+          $ref: '#/components/responses/taskStatus'
+        '400':
+          description: Передан не UUID
+        '404':
+          description: Задача с {taskId} не найдена
+        '408':
+          description: Ожидание превысило порог в 5 минут
+        '500':
+          description: Что-то пошло не так
+components:
+  parameters:
+    taskId:
+      in: path
+      name: taskId
+      required: true
+      schema:
+       $ref: '#/components/schemas/TaskId'
+      description: UUID Задачи
+  responses:
+    taskStatus:
+      description: Состояние задачи
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+  schemas:
+    TaskId:
+      type: string
+      format: uuid
+      description: Идентификатор задачи (UUID)
+      example: "41250dab-de64-45cb-b19f-b4947fb8393f"
+    TaskStatus:
+      description: |
+        # Состояние задачи
+      type: object
+      properties:
+        status:
+          type: string
+          enum: 
+            - created
+            - running
+            - finished
+          description: |
+            ## статус задачи
+            - `created` Задача создана, но ещё не запущена
+            - `running` Задача выполняется
+            - `finished` Задача выполнена
+        timestamp:
+          type: string
+          format: date-time
+          description: |
+            ## Дата и время изменения статуса
+      
