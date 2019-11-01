@@ -68,19 +68,16 @@ func (h *Handlers) HandlePoll(w http.ResponseWriter, r *http.Request) {
 
 func encodeError(_ context.Context, code int, err error, w http.ResponseWriter) {
 	w.WriteHeader(code)
-	if _, werr := w.Write([]byte(err.Error())); werr != nil {
-		log.Println(werr)
+	if _, err = w.Write([]byte(err.Error())); err != nil {
+		log.Println(err)
 	}
 }
 
 func encodeTask(ctx context.Context, w http.ResponseWriter, task Task) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	data, err := json.Marshal(task)
+	err := json.NewEncoder(w).Encode(task)
 	if err != nil {
 		encodeError(ctx, http.StatusInternalServerError, err, w)
 		return
-	}
-	if _, err := w.Write(data); err != nil {
-		log.Println(err)
 	}
 }

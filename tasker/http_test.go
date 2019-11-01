@@ -2,6 +2,7 @@ package tasker
 
 import (
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,7 +71,7 @@ func TestHandlers_HandleRead(t *testing.T) {
 			r = mux.SetURLVars(r, map[string]string{"id": tt.id})
 			h.HandleRead(w, r)
 			require.Equal(t, tt.wantCode, w.Code)
-			require.Equal(t, tt.wantBody, w.Body.String())
+			require.Equal(t, tt.wantBody, strings.TrimSpace(w.Body.String()))
 		})
 	}
 }

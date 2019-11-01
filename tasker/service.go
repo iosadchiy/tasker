@@ -26,7 +26,7 @@ func NewService(db *gorm.DB) Service {
 }
 
 func (s *Service) Create(ctx context.Context) (Task, error) {
-	task, err := s.createTask(ctx);
+	task, err := s.createTask(ctx)
 	if err != nil {
 		return task, err
 	}
